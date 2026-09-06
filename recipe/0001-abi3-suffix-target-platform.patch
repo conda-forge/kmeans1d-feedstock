@@ -1,0 +1,44 @@
+Name abi3 extensions for the target platform, not the build platform
+
+Python 3.15 added the platform triplet to the Limited API extension suffix
+(python/cpython#122931), turning `_core.abi3.so` into
+`_core.abi3-<SOABI_PLATFORM>.so`. setuptools derives that suffix from
+`importlib.machinery.EXTENSION_SUFFIXES` of the *running* interpreter, so a
+linux-64 -> linux-ppc64le cross build emits a correct ppc64le object named
+`_core.abi3-x86_64-linux-gnu.so`, which the target interpreter refuses to
+import.
+
+Override get_ext_filename to substitute the target's SOABI_PLATFORM. The
+suffix is only rewritten when it already carries a triplet, so Python <= 3.14
+(plain `.abi3.so`) is unaffected.
+
+Reported upstream at conda-forge/cross-python-feedstock#109.
+
+diff --git a/setup.py b/setup.py
+index 33f3a16..cd9e6f6 100755
+--- a/setup.py
++++ b/setup.py
+@@ -1,4 +1,5 @@
+ import os
++import re
+ import sysconfig
+ 
+ import setuptools
+@@ -18,6 +19,17 @@ USE_LIMITED_API = sysconfig.get_config_var('Py_GIL_DISABLED') != 1
+ class BuildExt(build_ext):
+     """A custom build extension for adding -stdlib arguments for clang++."""
+ 
++    def get_ext_filename(self, fullname):
++        # Python 3.15 added the platform triplet to the Limited API extension
++        # suffix (python/cpython#122931), but setuptools takes that suffix from
++        # the running interpreter, which is the build machine when cross
++        # compiling. Use the target's SOABI_PLATFORM instead.
++        filename = super().get_ext_filename(fullname)
++        platform = sysconfig.get_config_var('SOABI_PLATFORM')
++        if platform:
++            filename = re.sub(r'\.abi3-[^.]+\.', '.abi3-%s.' % platform, filename)
++        return filename
++
+     def build_extensions(self):
+         # '-std=c++11' is added to `extra_compile_args` so the code can compile
+         # with clang++. This works across compilers (ignored by MSVC).
