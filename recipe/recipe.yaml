@@ -1,5 +1,5 @@
 context:
-  version: "0.5.0"
+  version: "0.5.1"
 
 package:
   name: kmeans1d
@@ -7,13 +7,13 @@ package:
 
 source:
   url: https://pypi.org/packages/source/k/kmeans1d/kmeans1d-${{ version }}.tar.gz
-  sha256: a8fd0cda0f3d7a563d232f53c1f752850832ad920f4162dbc71040d647ba4091
+  sha256: b052406fbdc80770cd9f50da16e4b13b19eed04ddae21076bf19443f7d16dbe5
   patches:
     - 0001-abi3-suffix-target-platform.patch
 
 build:
   script: python -m pip install . -vv
-  number: 3
+  number: 0
 
 requirements:
   build:
